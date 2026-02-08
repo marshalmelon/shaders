@@ -1,9 +1,9 @@
 uniform bool vertical <ui_label="vertical(竖向)";> = false;
+uniform float light <ui_type="slider"; ui_min=0.01; ui_max=1.0; ui_step=0.01; ui_label="light(亮度)";> = 0.41;
 
-#define gamma 2.2
-#define gamma1 2.5
+#define gammacrt 2.2
+#define gammalcd 2.5
 #define makea 510.0 / 53.0
-#define bsigma 1.5609262985058092
 
 texture2D texColor : COLOR;
 sampler2D buffer { Texture = texColor; };
@@ -15,7 +15,7 @@ texture2D CacheTexY <pooled = true;> { Width = BUFFER_WIDTH; Height = BUFFER_HEI
 sampler2D CacheY { Texture = CacheTexY; };
 
 float3 tex2Dblur9fast(const float3 color, sampler2D tex, const float2 uv, const float2 xy) {
-    const float denom = 0.5 / (bsigma * bsigma);
+    const float denom = 0.2;
     const float w0 = 1.0;
     const float w1 = exp(-1.0 * denom);
     const float w2 = exp(-4.0 * denom);
@@ -26,7 +26,7 @@ float3 tex2Dblur9fast(const float3 color, sampler2D tex, const float2 uv, const 
     const float w34 = w3 + w4;
     const float w12_ratio = w2/w12;
     const float w34_ratio = w4/w34;
-    float3 sum = float3(0.0,0.0,0.0);
+    float3 sum = 0.0;
     sum += w34 * tex2D(tex, uv - (3.0 + w34_ratio) * xy).rgb;
     sum += w12 * tex2D(tex, uv - (1.0 + w12_ratio) * xy).rgb;
     sum += w0 * color;
@@ -38,13 +38,13 @@ float3 tex2Dblur9fast(const float3 color, sampler2D tex, const float2 uv, const 
 float3 getAndColorX(float4 pos, float2 uv) {
     const float3 color = tex2D(buffer, uv).rgb;
     const int zong3 = pos.y % 3;
-    return pow(color, gamma1) * 0.5 * float3(zong3 == 0, zong3 == 1, zong3 == 2);
+    return pow(color, gammalcd) * light * float3(zong3 == 0, zong3 == 1, zong3 == 2);
 }
 
 float3 getAndColorY(float4 pos, float2 uv) {
     const float3 color = tex2D(buffer, uv).rgb;
     const int heng3 = pos.x % 3;
-    return pow(color, gamma1) * 0.5 * float3(heng3 == 0, heng3 == 1, heng3 == 2);
+    return pow(color, gammalcd) * light * float3(heng3 == 0, heng3 == 1, heng3 == 2);
 }
 
 float3 getBrightColor(float3 andColor) {
@@ -107,10 +107,10 @@ float3 getFinalColorX(float4 pos, float2 uv) {
     const float3 brightpass = blurh(uv);
     const float3 blurBright = tex2Dblur9fast(brightpass, CacheX, uv, float2(0, BUFFER_RCP_HEIGHT));
     const float3 addColor = andColor + blurBright;
-    const float maxrcp = gamma1 * 1.4 / max(addColor.r, max(addColor.g, addColor.b));
+    const float maxrcp = gammalcd * 1.44 / max(addColor.r, max(addColor.g, addColor.b));
     const float make = min(maxrcp, makea);
     const float3 phosphorBbloom = addColor * make;
-    return pow(phosphorBbloom, 1.0 / gamma);
+    return pow(phosphorBbloom, 1.0 / gammacrt);
 }
 
 float3 getFinalColorY(float4 pos, float2 uv) {
@@ -118,10 +118,10 @@ float3 getFinalColorY(float4 pos, float2 uv) {
     const float3 brightpass = blurv(uv);
     const float3 blurBright = tex2Dblur9fast(brightpass, CacheY, uv, float2(BUFFER_RCP_WIDTH, 0));
     const float3 addColor = andColor + blurBright;
-    const float maxrcp = gamma1 * 1.4 / max(addColor.r, max(addColor.g, addColor.b));
+    const float maxrcp = gammalcd * 1.44 / max(addColor.r, max(addColor.g, addColor.b));
     const float make = min(maxrcp, makea);
     const float3 phosphorBbloom = addColor * make;
-    return pow(phosphorBbloom, 1.0 / gamma);
+    return pow(phosphorBbloom, 1.0 / gammacrt);
 }
 
 float4 PS1(float4 pos : SV_Position, float2 uv : TEXCOORD) : SV_Target {
