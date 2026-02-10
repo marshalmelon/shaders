@@ -22,7 +22,7 @@ float3 getSameColor(const float3 color, sampler2D tex, const float2 uv, const fl
 
 float3 getScanColor(float4 pos, float2 uv, int flag) {
     const float3 color = tex2D(buffer, uv).rgb;
-    return pow(color, gammalcd) * 0.43 * float3(flag == 0, flag == 1, flag == 2);
+    return pow(color, gammalcd) * float3(flag == 0, flag == 1, flag == 2) * 0.37;
 }
 
 float3 getBrightColor(float3 color) {
@@ -66,7 +66,7 @@ float3 getFinalColor(float4 pos, float2 uv, sampler2D tex, int flag, float2 xy, 
     const float3 blurColor = blur(tex, uv, xy);
     const float3 sameColor = getSameColor(blurColor, tex, uv, yx);
     const float3 addColor = scanColor + sameColor;
-    const float makeMax = pow(240.0 / 255.0, gammacrt) / min(addColor.r, min(addColor.g, addColor.b));
+    const float makeMax = pow(232.0 / 255.0, gammacrt) / min(addColor.r, min(addColor.g, addColor.b));
     const float make = min(makeMax, 510.0 / 53.0);
     const float3 phosphorBbloom = addColor * make;
     return pow(phosphorBbloom, 1.0 / gammacrt);
