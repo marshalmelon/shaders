@@ -1,9 +1,9 @@
 uniform bool vertical <ui_label="vertical(竖向)";> = false;
-uniform float light <ui_type="slider"; ui_min=0.01; ui_max=1.0; ui_step=0.01; ui_label="light(亮度)";> = 0.41;
 
 #define gammacrt 2.2
 #define gammalcd 2.5
-#define makea 510.0 / 53.0
+#define wh float2(BUFFER_RCP_WIDTH, 0)
+#define hw float2(0, BUFFER_RCP_HEIGHT)
 
 texture2D texColor : COLOR;
 sampler2D buffer { Texture = texColor; };
@@ -14,71 +14,30 @@ sampler2D CacheX { Texture = CacheTexX; };
 texture2D CacheTexY <pooled = true;> { Width = BUFFER_WIDTH; Height = BUFFER_HEIGHT; Format = RGBA8; };
 sampler2D CacheY { Texture = CacheTexY; };
 
-float3 tex2Dblur9fast(const float3 color, sampler2D tex, const float2 uv, const float2 xy) {
-    const float denom = 0.2;
-    const float w0 = 1.0;
-    const float w1 = exp(-1.0 * denom);
-    const float w2 = exp(-4.0 * denom);
-    const float w3 = exp(-9.0 * denom);
-    const float w4 = exp(-16.0 * denom);
-    const float weightSum = 1.0 / (w0 + 2.0 * (w1 + w2 + w3 + w4));
-    const float w12 = w1 + w2;
-    const float w34 = w3 + w4;
-    const float w12_ratio = w2/w12;
-    const float w34_ratio = w4/w34;
-    float3 sum = 0.0;
-    sum += w34 * tex2D(tex, uv - (3.0 + w34_ratio) * xy).rgb;
-    sum += w12 * tex2D(tex, uv - (1.0 + w12_ratio) * xy).rgb;
-    sum += w0 * color;
-    sum += w12 * tex2D(tex, uv + (1.0 + w12_ratio) * xy).rgb;
-    sum += w34 * tex2D(tex, uv + (3.0 + w34_ratio) * xy).rgb;
-    return sum * weightSum;
+float3 getSameColor(const float3 color, sampler2D tex, const float2 uv, const float2 xy) {
+    const float3 colorBefore = tex2D(tex, uv + xy).rgb;
+    const float3 colorAfter = tex2D(tex, uv - xy).rgb;
+    return (colorBefore + color + colorAfter) / 3;
 }
 
-float3 getAndColorX(float4 pos, float2 uv) {
+float3 getScanColor(float4 pos, float2 uv, int flag) {
     const float3 color = tex2D(buffer, uv).rgb;
-    const int zong3 = pos.y % 3;
-    return pow(color, gammalcd) * light * float3(zong3 == 0, zong3 == 1, zong3 == 2);
+    return pow(color, gammalcd) * 0.43 * float3(flag == 0, flag == 1, flag == 2);
 }
 
-float3 getAndColorY(float4 pos, float2 uv) {
-    const float3 color = tex2D(buffer, uv).rgb;
-    const int heng3 = pos.x % 3;
-    return pow(color, gammalcd) * light * float3(heng3 == 0, heng3 == 1, heng3 == 2);
+float3 getBrightColor(float3 color) {
+    return color * saturate(1.34 - 0.15 / color);
 }
 
-float3 getBrightColor(float3 andColor) {
-    const float3 intensity = andColor * makea * 0.8;
-    const float3 blurTemp =(1.0 / intensity - 1.0) / (0.255832 - 1.0);
-    const float3 blurRatio = saturate(blurTemp);
-    const float3 brightpass = andColor * blurRatio;
-    return brightpass;
-}
-
-float3 blurh(float2 uv) {
-    const float g = BUFFER_RCP_WIDTH * 1.6;
-    float3 h = tex2D(CacheX, uv).rgb;
+float3 blur(sampler2D tex, const float2 uv, const float2 xy) {
+    const float2 g = xy * 1.6;
+    float3 h = tex2D(tex, uv).rgb;
     float weightSum = 1.0;
-    const int ox = 5 + (vertical ? 0 : 2);
-    for (int i = 1; i < ox; i += 1) {
-        float2 j = float2(float(i) * g, 0.0);
-        h += tex2D(CacheX, uv + j).rgb;
-        h += tex2D(CacheX, uv - j).rgb;
-        weightSum += 2.0;
-    }
-    h /= weightSum;
-    return h;
-}
-
-float3 blurv(float2 uv) {
-    const float g = BUFFER_RCP_HEIGHT * 1.6;
-    float3 h = tex2D(CacheY, uv).rgb;
-    float weightSum = 1.0;
-    const int oy = 5 + (vertical ? 2 : 0);
-    for (int i = 1; i < oy; i += 1) {
-        float2 j = float2(0.0, float(i) * g);
-        h += tex2D(CacheY, uv + j).rgb;
-        h += tex2D(CacheY, uv - j).rgb;
+    const int end = 5 + ((xy.y * vertical || xy.x * !vertical) ? 2 : 0);
+    for (int i = 1; i < end; i += 1) {
+        float2 j = float(i) * g;
+        h += tex2D(tex, uv + j).rgb;
+        h += tex2D(tex, uv - j).rgb;
         weightSum += 2.0;
     }
     h /= weightSum;
@@ -87,48 +46,34 @@ float3 blurv(float2 uv) {
 
 void VS(in uint id : SV_VertexID, out float4 position : SV_Position, out float2 texcoord : TEXCOORD)
 {
-	texcoord.x = (id == 2) ? 2.0 : 0.0;
+    texcoord.x = (id == 2) ? 2.0 : 0.0;
 	texcoord.y = (id == 1) ? 2.0 : 0.0;
 	position = float4(texcoord * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
 }
 
 float4 PSX(float4 pos : SV_Position, float2 uv : TEXCOORD) : SV_Target {
-    const float3 andColor = getAndColorX(pos, uv);
-    return float4(getBrightColor(andColor), 1.0);
+    const float3 color = getScanColor(pos, uv, pos.y % 3);
+    return float4(getBrightColor(color), 1.0);
 }
 
 float4 PSY(float4 pos : SV_Position, float2 uv : TEXCOORD) : SV_Target {
-    const float3 andColor = getAndColorY(pos, uv);
-    return float4(getBrightColor(andColor), 1.0);
+    const float3 color = getScanColor(pos, uv, pos.x % 3);
+    return float4(getBrightColor(color), 1.0);
 }
 
-float3 getFinalColorX(float4 pos, float2 uv) {
-    const float3 andColor = getAndColorX(pos, uv);
-    const float3 brightpass = blurh(uv);
-    const float3 blurBright = tex2Dblur9fast(brightpass, CacheX, uv, float2(0, BUFFER_RCP_HEIGHT));
-    const float3 addColor = andColor + blurBright;
-    const float maxrcp = gammalcd * 1.44 / max(addColor.r, max(addColor.g, addColor.b));
-    const float make = min(maxrcp, makea);
-    const float3 phosphorBbloom = addColor * make;
-    return pow(phosphorBbloom, 1.0 / gammacrt);
-}
-
-float3 getFinalColorY(float4 pos, float2 uv) {
-    const float3 andColor = getAndColorY(pos, uv);
-    const float3 brightpass = blurv(uv);
-    const float3 blurBright = tex2Dblur9fast(brightpass, CacheY, uv, float2(BUFFER_RCP_WIDTH, 0));
-    const float3 addColor = andColor + blurBright;
-    const float maxrcp = gammalcd * 1.44 / max(addColor.r, max(addColor.g, addColor.b));
-    const float make = min(maxrcp, makea);
+float3 getFinalColor(float4 pos, float2 uv, sampler2D tex, int flag, float2 xy, float2 yx) {
+    const float3 scanColor = getScanColor(pos, uv, flag);
+    const float3 blurColor = blur(tex, uv, xy);
+    const float3 sameColor = getSameColor(blurColor, tex, uv, yx);
+    const float3 addColor = scanColor + sameColor;
+    const float makeMax = pow(240.0 / 255.0, gammacrt) / min(addColor.r, min(addColor.g, addColor.b));
+    const float make = min(makeMax, 510.0 / 53.0);
     const float3 phosphorBbloom = addColor * make;
     return pow(phosphorBbloom, 1.0 / gammacrt);
 }
 
 float4 PS1(float4 pos : SV_Position, float2 uv : TEXCOORD) : SV_Target {
-    const float3 colorX = getFinalColorX(pos, uv);
-    const float3 colorY = getFinalColorY(pos, uv);
-    return pos.x % 2 == pos.y % 2 ? float4(colorX, 1.0) :float4(colorY, 1.0);
-    
+    return float4(pos.x % 2 == pos.y % 2 ? getFinalColor(pos, uv, CacheX, pos.y % 3, wh, hw) : getFinalColor(pos, uv, CacheY, pos.x % 3, hw, wh), 1.0);
 }
 
 technique split_color_weave {
