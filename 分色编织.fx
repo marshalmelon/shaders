@@ -17,7 +17,7 @@ sampler2D CacheY { Texture = CacheTexY; };
 float3 getSameColor(const float3 color, sampler2D tex, const float2 uv, const float2 xy) {
     const float3 colorBefore = tex2D(tex, uv + xy).rgb;
     const float3 colorAfter = tex2D(tex, uv - xy).rgb;
-    return (colorBefore + color + colorAfter) / 3;
+    return (colorBefore + color + colorAfter) / 3.0;
 }
 
 float3 getScanColor(float4 pos, float2 uv, int flag) {
