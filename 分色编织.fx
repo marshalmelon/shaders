@@ -53,8 +53,8 @@ float3 getFinalColor(float4 pos, float2 uv, int3 flag, float2 xy, float2 yx) {
     const float3 addColor = blurColor + sameColor;
     const float makeMax = pow(248.0 / 255.0, gammacrt) / min(addColor.r, min(addColor.g, addColor.b));
     const float make = min(makeMax, 510.0 / 53.0);
-    const float3 phosphorBbloom = addColor * make;
-    return pow(phosphorBbloom, 1.0 / gammacrt);
+    const float3 finalColor = addColor * make;
+    return pow(finalColor, 1.0 / gammacrt);
 }
 
 float4 PS(float4 pos : SV_Position, float2 uv : TEXCOORD) : SV_Target {
