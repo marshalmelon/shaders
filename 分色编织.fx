@@ -2,7 +2,7 @@ uniform bool vertical <ui_label="vertical(竖向)";> = false;
 
 #define gammacrt 2.2
 #define gammalcd 2.5
-#define lighter 0.37
+#define lighter 0.38
 #define wh float2(BUFFER_RCP_WIDTH, 0)
 #define hw float2(0, BUFFER_RCP_HEIGHT)
 
@@ -51,7 +51,7 @@ float3 getFinalColor(float4 pos, float2 uv, int3 flag, float2 xy, float2 yx) {
     const float3 blurColor = blur(gammaColor, uv, xy) * scan * lighter;
     const float3 sameColor = getSameColor(scanColor, uv, yx, flag);
     const float3 addColor = blurColor + sameColor;
-    const float makeMax = pow(240.0 / 255.0, gammacrt) / min(addColor.r, min(addColor.g, addColor.b));
+    const float makeMax = pow(248.0 / 255.0, gammacrt) / min(addColor.r, min(addColor.g, addColor.b));
     const float make = min(makeMax, 510.0 / 53.0);
     const float3 phosphorBbloom = addColor * make;
     return pow(phosphorBbloom, 1.0 / gammacrt);
