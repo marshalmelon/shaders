@@ -23,7 +23,7 @@ float3 getSameColor(const float3 color, const float2 uv, const float2 xy, int3 f
 
 float3 blur(float3 c, const float2 uv, const float2 xy) {
     float3 color = c;
-    float es[7] = {0.8, 0.4, 0.2, 0.1, 0.05, 0.025, 0.0125};
+    float es[7] = {1.0, 0.25, 0.1111, 0.0625, 0.04, 0.0278, 0.0204};
     const float2 g = xy * 1.6;
     float weightSum = 1.0;
     const int end = 5 + ((xy.y * vertical || xy.x * !vertical) ? 2 : 0);
