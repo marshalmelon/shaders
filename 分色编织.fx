@@ -3,8 +3,8 @@ uniform bool vertical <ui_label="vertical(竖向)";> = false;
 #define gammacrt 2.2
 #define gammalcd 2.5
 #define lighter 0.38
-#define wh float2(BUFFER_RCP_WIDTH, 0)
-#define hw float2(0, BUFFER_RCP_HEIGHT)
+#define wh float2(BUFFER_RCP_WIDTH, 0.0)
+#define hw float2(0.0, BUFFER_RCP_HEIGHT)
 
 texture2D texColor : COLOR;
 sampler2D buffer { Texture = texColor; };
@@ -22,10 +22,10 @@ float3 getSameColor(const float3 color, const float2 uv, const float2 xy, const 
 }
 
 float3 blur(float3 c, const float2 uv, const float2 xy) {
-    float3 color = c;
-    const float es[7] = {1.0, 0.25, 0.1111, 0.0625, 0.04, 0.0278, 0.0204};
-    const float2 g = xy * 1.6;
-    float weightSum = 1.0;
+    const float es[7] = {2.0, 0.25, 0.1111, 0.0625, 0.04, 0.0278, 0.0204};
+    const float2 g = ceil(xy) * float2(1.0 / 1980.0, 1.0 / 1080.0) * 1.6;
+    float weightSum = es[0];
+    float3 color = c * weightSum;
     const int end = 5 + ((xy.y * vertical || xy.x * !vertical) ? 2 : 0);
     for (int i = 1; i < end; i += 1) {
         float2 j = float(i) * g;
