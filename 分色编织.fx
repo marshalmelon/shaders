@@ -59,7 +59,7 @@ float3 getFinalColor(float4 pos, float2 uv, int3 flag, float2 xy, float2 yx) {
 float4 PS0(float4 pos : SV_Position, float2 uv : TEXCOORD) : SV_Target {
     float3 color = pow(tex2D(differ, uv).rgb, gammacrt);
     const float3 diffrgb = min(color, 1.0 - color);
-    const float diff = min(diffrgb.x, min(diffrgb.y, diffrgb.z)) * 0.5;
+    const float diff = min(min(diffrgb.r, min(diffrgb.g, diffrgb.b)), 0.0254) * 0.5;
     const int2 oddxy = pos.xy % 3;
     const int odd = pos.x % 2 == pos.y % 2 ? oddxy.x : oddxy.y;
     color += diff * (float3(odd == 0, odd == 1, odd == 2) * 3.0 - 1.0);
