@@ -21,7 +21,7 @@ float3 getSameColor(const float3 color, const float2 uv, const float2 xy, const 
 
 float3 blur(float3 c, const float2 uv, const float2 xy) {
     const float es[8] = {2.0, 0.25, 0.1111, 0.0625, 0.04, 0.0278, 0.0278, 0.0278};
-    const float2 g = ceil(xy) * float2(1.0 / 1980.0, 1.0 / 1080.0) * 1.6;
+    const float2 g = ceil(xy) * float2(1.0 / 1920.0, 1.0 / 1080.0) * 1.5;
     float weightSum = es[0];
     float3 color = c * weightSum;
     const int end = 6 + (xy.x ? 2 : 0);
@@ -49,9 +49,7 @@ float3 getFinalColor(float4 pos, float2 uv, int3 flag, float2 xy, float2 yx) {
     const float3 blurColor = blur(gammaColor, uv, xy) * scan * lighter;
     const float3 sameColor = getSameColor(scanColor, uv, yx, flag);
     const float3 addColor = blurColor + sameColor;
-    const float makeMax = pow(248.0 / 255.0, gammacrt) / min(addColor.r, min(addColor.g, addColor.b));
-    const float make = min(makeMax, 510.0 / 53.0);
-    const float3 finalColor  = addColor * make;
+    const float3 finalColor  = addColor * 510.0 / 53.0;
     return pow(finalColor , 1.0 / gammacrt);
 }
 
