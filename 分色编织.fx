@@ -32,8 +32,8 @@ void VS(in uint id : SV_VertexID, out float4 position : SV_Position, out float2 
 float3x3 getLightColor(const float3 color) {
     const float3 gc3 = color * 3.0;
     const float3 max3 = min(1.0, gc3);
-    const float3 rest3 = gc3 - max3;
-    return float3x3(float3(max3.r, rest3.gb * 0.5), float3(rest3.r * 0.5, max3.g, rest3.b * 0.5), float3(rest3.rg * 0.5, max3.b));
+    const float3 rest3 = (gc3 - max3) * 0.5;
+    return float3x3(float3(max3.r, rest3.gb), float3(rest3.r, max3.g, rest3.b), float3(rest3.rg, max3.b));
 }
 
 float4 PS0(float4 pos : SV_Position, float2 uv : TEXCOORD) : SV_Target {
